@@ -1,134 +1,112 @@
-let express = require('express');
+import express from "express"
+import cors from 'cors'
+import * as http from 'http'
+import { Server } from 'socket.io'
+import AdminService from "./Service/AdminService.js"
+import e from "express"
+
 const app = express();
-const server = require("http").createServer(app);
-const io = require("socket.io")(server);
-const { get_Current_User, user_Disconnect, join_User } = require("./dummyuser");
-// const port = 3000;
+app.use(cors);
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "https://dash.vocco.ai",
+    methods: ['GET', 'POST']
+  }
+});
+
 const vc_users = [];
+const dash_users = [];
 const users_byId = [];
-//const rooms_byid = [];
 
-//initializing the socket io connection 
 io.on("connection", (socket) => {
-  socket.on("newVoice", ({ uid }) => {
-    //* create user
-    //broad cast self available signal to someones was accepted
-    socket.broadcast.emit("notice_Voice", {id:socket.id, user_id: uid});
-    //console.log(uid, "User List");
-  });
-  
-  socket.on("login", ({ uid, email }) => {
-    //* create user
-    console.log(uid+" "+email+" ****************");
+
+  socket.on("login", ({ uid, email, isNew }, callback) => {
     const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
-    if(selfIndex != -1){
-      vc_users[selfIndex] = {id:socket.id, user_id: uid, user_email: email, last_seen:null};
-    } else {
-      vc_users.push({id:socket.id, user_id: uid, user_email: email, last_seen:null});
+    if (selfIndex != -1 || (users_byId[uid] && users_byId[uid].last_seen == 'onSession')) {
+      callback("Already login");
     }
-    users_byId[uid] = {id:socket.id, user_id: uid, user_email: email, last_seen:null};
-    //console.log(vc_users, "User List");
-    //broad cast self available signal to someones was accepted
-    //socket.broadcast.emit("joined", {id:socket.id, user_id: uid, user_email: email});
+    else {
+      vc_users.push({ id: socket.id, user_id: uid, user_email: email });
+      if (isNew && !users_byId[uid])
+        io.to("dashRoom").emit("subscribe_user", { email });
+      users_byId[uid] = { id: socket.id, user_id: uid, user_email: email, first_seen: new Date(), last_seen: "onSession" };
+      callback("Success");
+      socket.broadcast.emit("user_login", { user_id: uid, v: 'onSession' });
+    }
   });
 
-  socket.on("getFriendStates", (userIds, callback) => {
-    callback(userIds.map((item)=>users_byId[item].last_seen))
+  socket.on("dash_login", ({ uid }) => {
+    const selfIndex = dash_users.findIndex((e_user) => e_user.id === socket.id);
+    if (selfIndex == -1) {
+      dash_users.push({ id: socket.id });
+      socket.join("dashRoom");
+    }
+  });
+
+  socket.on("premium", ({ email }) => {
+    io.to("dashRoom").emit("premium", { email });
+  });
+
+  socket.on("getUsersState", (userIds, callback) => {
+    try {
+      callback(userIds.map((item) => {
+        if (users_byId[item])
+          return users_byId[item].last_seen;
+        return null;
+      }))
+    }
+    catch (err) {
+      console.log(err);
+    }
+  });
+
+  socket.on("newVoice", ({ uid }) => {
+    socket.broadcast.emit("notice_Voice", { id: socket.id, user_id: uid });
+  });
+
+  socket.on("newMessage", ({ info }) => {
+    let receiveUser = users_byId[info.toUser.id];
+    if (receiveUser && receiveUser.last_seen == 'onSession') {
+      io.to(receiveUser.id).emit("receiveMessage", { info: info });
+    }
+  });
+
+  socket.on("chatState", ({ toUserId, state }) => {
+    let receiveUser = users_byId[toUserId];
+    if (receiveUser && receiveUser.last_seen == 'onSession') {
+      io.to(receiveUser.id).emit("chatState", state);
+    }
   });
 
   //when the user exits the server
   socket.on("disconnect", () => {
-    //the user is deleted from array of users and a left room message displayed
-    const index = vc_users.findIndex((e_user) => e_user.id === socket.id);
-
+    let index = vc_users.findIndex((e_user) => e_user.id === socket.id);
     if (index !== -1) {
-      //socket.broadcast.emit("outed", vc_users[index]);
-      //users_byid.splice(ct_users[index].user_id, 1);
-      vc_users[index].last_seen = new Date();
-      users_byId[vc_users[index].user_id].last_seen = new Date();
+      let userId = vc_users[index].user_id;
+      let user = users_byId[userId];
+      if (user) {
+        user.last_seen = new Date();
+        let num = Math.ceil((user.last_seen - user.first_seen) / 1000);
+        let payload = {
+          id: userId,
+          sessionTime: num
+        }
+        AdminService.addSession(payload);
+        socket.broadcast.emit("user_login", { user_id: userId, v: user.last_seen });
+      }
+      vc_users.splice(index, 1);
     }
-    //console.log(ct_users, 'disconnected');
+    else {
+      index = vc_users.findIndex((e_user) => e_user.id === socket.id);
+      if (index != -1) {
+        socket.leave("dashRoom");
+      }
+    }
   });
-
-  // socket.on("sendmessage", ({receiver_id, message_text}) => {
-  //   //* create user
-  //   // ct_users.push({id:socket.id, user_id: uid, user_email: email});
-  //   const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
-  //   console.log('Sender', vc_users[selfIndex]);
-  //   socket.emit("message", {
-  //     sender: {id:vc_users[selfIndex].user_id},
-  //     createdAt: new Date().toString(),
-  //     message: message_text,
-  //   });
-  //   const index = vc_users.findIndex((e_user) => e_user.user_id === receiver_id);
-  //   if(users_byid[receiver_id]){
-  //     console.log('Receiver', vc_users[index]);
-  //     io.to(users_byid[receiver_id].id).emit("message", {
-  //       sender: {id:vc_users[selfIndex].user_id},
-  //       createdAt: new Date().toString(),
-  //       message: message_text,
-  //     });
-  //   }
-
-  //   socket.emit("here", {aa:vc_users, bb:users_byid});
-    
-  //   //broad cast self available signal to someones was accepted
-  // });
-
-  // socket.on("gethisonline", (him) => {
-  //   const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
-  //   socket.emit("hisonline", users_byid[him] ? true : false);
-  //   if (users_byid[him]) {
-  //     rooms_byid[vc_users[selfIndex].user_id] = him;
-  //   }
-  // });
-
-  // socket.on("istyping", (him) => {
-  //   console.log(him, 'him');
-  //   const index = vc_users.findIndex((e_user) => e_user.user_id === him);
-  //   if (users_byid[him]){
-  //     console.log(vc_users[index], 'lalalal', users_byid);
-  //     io.to(users_byid[him].id).emit("istyping", true);
-  //   }
-  // });
-
-
-    //for a new user joining the room
-    // socket.on("joinRoom", ({ username, roomname }) => {
-    //   //* create user
-    //   const p_user = join_User(socket.id, username, roomname);
-    //   console.log(socket.id, "=id");
-    //   socket.join(p_user.room);
-  
-    //   //display a welcome message to the user who have joined a room
-    //   socket.emit("message", {
-    //     userId: p_user.id,
-    //     username: p_user.username,
-    //     text: `Welcome ${p_user.username}`,
-    //   });
-  
-    //   //displays a joined room message to all other room users except that particular user
-    //   socket.broadcast.to(p_user.room).emit("message", {
-    //     userId: p_user.id,
-    //     username: p_user.username,
-    //     text: `${p_user.username} has joined the chat`,
-    //   });
-    // });
-  
-    //user sending message
-    // socket.on("chat", (text) => {
-    //   //gets the room user and the message sent
-    //   const p_user = get_Current_User(socket.id);
-  
-    //   io.to(p_user.room).emit("message", {
-    //     userId: p_user.id,
-    //     username: p_user.username,
-    //     text: text,
-    //   });
-    // });
-  });
-const PORT = process.env.PORT || 21;
+});
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, err => {
-    if(err) throw err;
-    console.log("Server running: PORT:" + PORT);
+  if (err) throw err;
+  console.log("Server running: PORT:" + PORT);
 });
