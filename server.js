@@ -3,7 +3,6 @@ import cors from 'cors'
 import * as http from 'http'
 import { Server } from 'socket.io'
 import AdminService from "./Service/AdminService.js"
-import e from "express"
 
 const app = express();
 app.use(cors);
@@ -33,6 +32,7 @@ io.on("connection", (socket) => {
       users_byId[uid] = { id: socket.id, user_id: uid, user_email: email, first_seen: new Date(), last_seen: "onSession" };
       callback("Success");
       socket.broadcast.emit("user_login", { user_id: uid, v: 'onSession' });
+      socket.join("appRoom");
     }
   });
 
@@ -62,20 +62,22 @@ io.on("connection", (socket) => {
   });
 
   socket.on("newVoice", ({ uid }) => {
-    socket.broadcast.emit("notice_Voice", { id: socket.id, user_id: uid });
+    io.to("appRoom").emit("notice_Voice", { id: socket.id, user_id: uid });
   });
 
   socket.on("newMessage", ({ info }) => {
+    console.log(info);
     let receiveUser = users_byId[info.toUser.id];
     if (receiveUser && receiveUser.last_seen == 'onSession') {
       io.to(receiveUser.id).emit("receiveMessage", { info: info });
+      io.to("appRoom").emit("chatState", { fromUserId:info.user.id, toUserId:info.toUser.id, state:info.type, emoji:info.emoji });
     }
   });
 
-  socket.on("chatState", ({ toUserId, state }) => {
+  socket.on("chatState", ({ fromUserId, toUserId, state }) => {
     let receiveUser = users_byId[toUserId];
     if (receiveUser && receiveUser.last_seen == 'onSession') {
-      io.to(receiveUser.id).emit("chatState", state);
+      io.to("appRoom").emit("chatState", { fromUserId, toUserId, state });
     }
   });
 
@@ -84,22 +86,23 @@ io.on("connection", (socket) => {
     let index = vc_users.findIndex((e_user) => e_user.id === socket.id);
     if (index !== -1) {
       let userId = vc_users[index].user_id;
-      let user = users_byId[userId];
-      if (user) {
-        user.last_seen = new Date();
-        let num = Math.ceil((user.last_seen - user.first_seen) / 1000);
+      if (users_byId[userId]) {
+        users_byId[userId].last_seen = new Date();
+        let num = Math.ceil((users_byId[userId].last_seen - users_byId[userId].first_seen) / 1000);
         let payload = {
           id: userId,
           sessionTime: num
         }
         AdminService.addSession(payload);
-        socket.broadcast.emit("user_login", { user_id: userId, v: user.last_seen });
+        socket.broadcast.emit("user_login", { user_id: userId, v: users_byId[userId].last_seen });
       }
       vc_users.splice(index, 1);
+      socket.leave("appRoom");
     }
     else {
-      index = vc_users.findIndex((e_user) => e_user.id === socket.id);
+      index = dash_users.findIndex((e_user) => e_user.id === socket.id);
       if (index != -1) {
+        dash_users.splice(index, 1);
         socket.leave("dashRoom");
       }
     }
