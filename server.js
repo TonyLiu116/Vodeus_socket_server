@@ -17,10 +17,12 @@ const io = new Server(server, {
 const vc_users = [];
 const dash_users = [];
 const users_byId = [];
+const birdRooms = [];
 
 io.on("connection", (socket) => {
 
   socket.on("login", ({ uid, email, isNew }, callback) => {
+    console.log("login:", uid);
     const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
     if (selfIndex != -1 || (users_byId[uid] && users_byId[uid].last_seen == 'onSession')) {
       callback("Already login");
@@ -61,6 +63,48 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("createRoom", ({ info }) => {
+    console.log("createRoom: ", info);
+    birdRooms.push(info);
+    io.to("appRoom").emit("createBirdRoom", { info });
+  });
+
+  socket.on("enterRoom", ({ info }) => {
+    console.log("enterRoom: ", info);
+    let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
+    if (index != -1) {
+      birdRooms[index].participants.push(info);
+      birdRooms[index].participants.forEach(el => {
+        let receiveUser = users_byId[el.user.id];
+        if (receiveUser && receiveUser.last_seen == 'onSession') {
+          io.to(receiveUser.id).emit("enterBirdRoom", { info });
+        }
+      })
+    }
+  });
+
+  socket.on("exitRoom", ({ info }) => {
+    console.log(birdRooms)
+    console.log("exitRoom: ", info);
+    let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
+    if (index != -1) {
+      let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
+      birdRooms[index].participants.splice(p_index, 1);
+      if (birdRooms[index].participants.length == 0) {
+        birdRooms.splice(index,1);
+        io.to("appRoom").emit("deleteBirdRoom", { roomId:info.roomId });
+      }
+      else {
+        birdRooms[index].participants.forEach(el => {
+          let receiveUser = users_byId[el.userInfo.id];
+          if (receiveUser && receiveUser.last_seen == 'onSession') {
+            io.to(receiveUser.id).emit("enterBirdRoom", { info });
+          }
+        })
+      }
+    }
+  });
+
   socket.on("newVoice", ({ uid }) => {
     io.to("appRoom").emit("notice_Voice", { id: socket.id, user_id: uid });
   });
@@ -70,7 +114,7 @@ io.on("connection", (socket) => {
     let receiveUser = users_byId[info.toUser.id];
     if (receiveUser && receiveUser.last_seen == 'onSession') {
       io.to(receiveUser.id).emit("receiveMessage", { info: info });
-      io.to("appRoom").emit("chatState", { fromUserId:info.user.id, toUserId:info.toUser.id, state:info.type, emoji:info.emoji });
+      io.to("appRoom").emit("chatState", { fromUserId: info.user.id, toUserId: info.toUser.id, state: info.type, emoji: info.emoji });
     }
   });
 
