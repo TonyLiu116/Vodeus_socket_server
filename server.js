@@ -104,7 +104,7 @@ io.on("connection", (socket) => {
             io.to(receiveUser.id).emit("exitBirdRoom", { info });
           }
         });
-        birdRooms[index].participants = birdRooms[index].participants.splice(p_index, 1);
+        birdRooms[index].participants.splice(p_index, 1);
         if (birdRooms[index].participants.length == 0) {
           birdRooms.splice(index, 1);
         }
