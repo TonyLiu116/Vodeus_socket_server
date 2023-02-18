@@ -99,7 +99,7 @@ io.on("connection", (socket) => {
       let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
       if (p_index != -1) {
         birdRooms[index].participants.forEach(el => {
-          let receiveUser = users_byId[el.userInfo.id];
+          let receiveUser = users_byId[el.user.id];
           if (receiveUser && receiveUser.last_seen == 'onSession') {
             io.to(receiveUser.id).emit("exitBirdRoom", { info });
           }
