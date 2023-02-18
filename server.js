@@ -93,23 +93,20 @@ io.on("connection", (socket) => {
   });
 
   socket.on("exitRoom", ({ info }) => {
-    console.log(birdRooms)
-    console.log("exitRoom: ", info);
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
       let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
-      birdRooms[index].participants.splice(p_index, 1);
-      if (birdRooms[index].participants.length == 0) {
-        birdRooms.splice(index,1);
-        io.to("appRoom").emit("deleteBirdRoom", { roomId:info.roomId });
-      }
-      else {
+      if (p_index != -1) {
         birdRooms[index].participants.forEach(el => {
           let receiveUser = users_byId[el.userInfo.id];
           if (receiveUser && receiveUser.last_seen == 'onSession') {
-            io.to(receiveUser.id).emit("enterBirdRoom", { info });
+            io.to(receiveUser.id).emit("exitBirdRoom", { info });
           }
-        })
+        });
+        birdRooms[index].participants = birdRooms[index].participants.splice(p_index, 1);
+        if (birdRooms[index].participants.length == 0) {
+          birdRooms.splice(index, 1);
+        }
       }
     }
   });
