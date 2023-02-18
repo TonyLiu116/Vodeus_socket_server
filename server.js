@@ -93,6 +93,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("exitRoom", ({ info }) => {
+    console.log("exitRoom: ", info);
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
       let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
