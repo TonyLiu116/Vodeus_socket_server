@@ -63,6 +63,15 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("getBirdRooms", (callback) => {
+    try {
+      callback(birdRooms);
+    }
+    catch (err) {
+      console.log(err);
+    }
+  });
+
   socket.on("createRoom", ({ info }) => {
     console.log("createRoom: ", info);
     birdRooms.push(info);
