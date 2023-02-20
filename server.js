@@ -82,17 +82,20 @@ io.on("connection", (socket) => {
     console.log("enterRoom: ", info);
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
-      birdRooms[index].participants.push(info);
-      if (users_byId[info.user.id]) {
-        users_byId[info.user.id].roomId = info.roomId;
-        users_byId[info.user.id].participantId = info.participantId;
-      }
-      birdRooms[index].participants.forEach(el => {
-        let receiveUser = users_byId[el.user.id];
-        if (receiveUser && receiveUser.last_seen == 'onSession') {
-          io.to(receiveUser.id).emit("enterBirdRoom", { info });
+      let p_index = birdRooms[index].participants.findIndex(el => el.participantId == info.participantId);
+      if (p_index == -1) {
+        birdRooms[index].participants.push(info);
+        if (users_byId[info.user.id]) {
+          users_byId[info.user.id].roomId = info.roomId;
+          users_byId[info.user.id].participantId = info.participantId;
         }
-      })
+        birdRooms[index].participants.forEach(el => {
+          let receiveUser = users_byId[el.user.id];
+          if (receiveUser && receiveUser.last_seen == 'onSession') {
+            io.to(receiveUser.id).emit("enterBirdRoom", { info });
+          }
+        })
+      }
     }
   });
 
@@ -158,7 +161,7 @@ io.on("connection", (socket) => {
               birdRooms[index].participants.forEach(el => {
                 let receiveUser = users_byId[el.user.id];
                 if (receiveUser && receiveUser.last_seen == 'onSession') {
-                  io.to(receiveUser.id).emit("exitBirdRoom", { info:{roomId:users_byId[userId].roomId,participantId:users_byId[userId].participantId} });
+                  io.to(receiveUser.id).emit("exitBirdRoom", { info: { roomId: users_byId[userId].roomId, participantId: users_byId[userId].participantId } });
                 }
               });
               birdRooms[index].participants.splice(p_index, 1);
