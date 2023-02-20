@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
       vc_users.push({ id: socket.id, user_id: uid, user_email: email });
       if (isNew && !users_byId[uid])
         io.to("dashRoom").emit("subscribe_user", { email });
-      users_byId[uid] = { id: socket.id, user_id: uid, user_email: email, first_seen: new Date(), last_seen: "onSession" };
+      users_byId[uid] = { id: socket.id, user_id: uid, user_email: email, first_seen: new Date(), last_seen: "onSession", roomId: null, participantId: null };
       callback("Success");
       socket.broadcast.emit("user_login", { user_id: uid, v: 'onSession' });
       socket.join("appRoom");
@@ -83,6 +83,10 @@ io.on("connection", (socket) => {
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
       birdRooms[index].participants.push(info);
+      if (users_byId[info.user.id]) {
+        users_byId[info.user.id].roomId = info.roomId;
+        users_byId[info.user.id].participantId = info.participantId;
+      }
       birdRooms[index].participants.forEach(el => {
         let receiveUser = users_byId[el.user.id];
         if (receiveUser && receiveUser.last_seen == 'onSession') {
@@ -98,6 +102,10 @@ io.on("connection", (socket) => {
     if (index != -1) {
       let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
       if (p_index != -1) {
+        if (users_byId[info.user.id]) {
+          users_byId[info.user.id].roomId = null;
+          users_byId[info.user.id].participantId = null;
+        }
         birdRooms[index].participants.forEach(el => {
           let receiveUser = users_byId[el.user.id];
           if (receiveUser && receiveUser.last_seen == 'onSession') {
@@ -105,9 +113,6 @@ io.on("connection", (socket) => {
           }
         });
         birdRooms[index].participants.splice(p_index, 1);
-        if (birdRooms[index].participants.length == 0) {
-          birdRooms.splice(index, 1);
-        }
       }
     }
   });
@@ -145,6 +150,23 @@ io.on("connection", (socket) => {
           sessionTime: num
         }
         AdminService.addSession(payload);
+        if (users_byId[userId].roomId) {
+          let index = birdRooms.findIndex(el => (el.roomId == users_byId[userId].roomId));
+          if (index != -1) {
+            let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == users_byId[userId].participantId));
+            if (p_index != -1) {
+              birdRooms[index].participants.forEach(el => {
+                let receiveUser = users_byId[el.user.id];
+                if (receiveUser && receiveUser.last_seen == 'onSession') {
+                  io.to(receiveUser.id).emit("exitBirdRoom", { info:{roomId:users_byId[userId].roomId,participantId:users_byId[userId].participantId} });
+                }
+              });
+              birdRooms[index].participants.splice(p_index, 1);
+              users_byId[userId].roomId = null;
+              users_byId[userId].participantId = null;
+            }
+          }
+        }
         socket.broadcast.emit("user_login", { user_id: userId, v: users_byId[userId].last_seen });
       }
       vc_users.splice(index, 1);
