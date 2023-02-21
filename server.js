@@ -73,13 +73,19 @@ io.on("connection", (socket) => {
   });
 
   socket.on("createRoom", ({ info }) => {
-    console.log("createRoom: ", info);
-    birdRooms.push(info);
+    birdRooms.unshift(info);
     io.to("appRoom").emit("createBirdRoom", { info });
   });
 
+  socket.on("deleteRoom", ({ info }) => {
+    let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
+    if(index != -1)
+      birdRooms.splice(index,1);
+    io.to("appRoom").emit("deleteBirdRoom", { info });
+    AdminService.deleteBirdRoom(info.roomId);
+  });
+
   socket.on("enterRoom", ({ info }) => {
-    console.log("enterRoom: ", info);
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
       let p_index = birdRooms[index].participants.findIndex(el => el.participantId == info.participantId);
@@ -100,7 +106,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("exitRoom", ({ info }) => {
-    console.log("exitRoom: ", info);
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
       let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
@@ -125,7 +130,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("newMessage", ({ info }) => {
-    console.log(info);
     let receiveUser = users_byId[info.toUser.id];
     if (receiveUser && receiveUser.last_seen == 'onSession') {
       io.to(receiveUser.id).emit("receiveMessage", { info: info });
