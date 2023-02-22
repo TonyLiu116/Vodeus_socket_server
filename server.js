@@ -79,8 +79,8 @@ io.on("connection", (socket) => {
 
   socket.on("deleteRoom", ({ info }) => {
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
-    if(index != -1)
-      birdRooms.splice(index,1);
+    if (index != -1)
+      birdRooms.splice(index, 1);
     io.to("appRoom").emit("deleteBirdRoom", { info });
     AdminService.deleteBirdRoom(info.roomId);
   });
@@ -160,17 +160,24 @@ io.on("connection", (socket) => {
         if (users_byId[userId].roomId) {
           let index = birdRooms.findIndex(el => (el.roomId == users_byId[userId].roomId));
           if (index != -1) {
-            let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == users_byId[userId].participantId));
-            if (p_index != -1) {
-              birdRooms[index].participants.forEach(el => {
-                let receiveUser = users_byId[el.user.id];
-                if (receiveUser && receiveUser.last_seen == 'onSession') {
-                  io.to(receiveUser.id).emit("exitBirdRoom", { info: { roomId: users_byId[userId].roomId, participantId: users_byId[userId].participantId } });
-                }
-              });
-              birdRooms[index].participants.splice(p_index, 1);
-              users_byId[userId].roomId = null;
-              users_byId[userId].participantId = null;
+            if (birdRooms[index].hostUser.id == userId) {
+              io.to("appRoom").emit("deleteBirdRoom", { info: { roomId: users_byId[userId].roomId } });
+              AdminService.deleteBirdRoom(users_byId[userId].roomId);
+              birdRooms.splice(index, 1);
+            }
+            else {
+              let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == users_byId[userId].participantId));
+              if (p_index != -1) {
+                birdRooms[index].participants.forEach(el => {
+                  let receiveUser = users_byId[el.user.id];
+                  if (receiveUser && receiveUser.last_seen == 'onSession') {
+                    io.to(receiveUser.id).emit("exitBirdRoom", { info: { roomId: users_byId[userId].roomId, participantId: users_byId[userId].participantId } });
+                  }
+                });
+                birdRooms[index].participants.splice(p_index, 1);
+                users_byId[userId].roomId = null;
+                users_byId[userId].participantId = null;
+              }
             }
           }
         }
