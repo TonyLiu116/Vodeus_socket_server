@@ -74,6 +74,9 @@ io.on("connection", (socket) => {
 
   socket.on("createRoom", ({ info }) => {
     birdRooms.unshift(info);
+    if (users_byId[info.hostUser.id]) {
+      users_byId[info.hostUser.id].roomId = info.roomId;
+    }
     io.to("appRoom").emit("createBirdRoom", { info });
   });
 
