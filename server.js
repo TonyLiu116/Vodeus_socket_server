@@ -78,6 +78,7 @@ io.on("connection", (socket) => {
       users_byId[info.hostUser.id].roomId = info.roomId;
     }
     io.to("appRoom").emit("createBirdRoom", { info });
+    io.to("appRoom").emit("new_room", { info });
   });
 
   socket.on("deleteRoom", ({ info }) => {
