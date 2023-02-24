@@ -162,13 +162,8 @@ io.on("connection", (socket) => {
             else {
               let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == users_byId[userId].participantId));
               if (p_index != -1) {
-                birdRooms[index].participants.forEach(el => {
-                  let receiveUser = users_byId[el.user.id];
-                  if (receiveUser && receiveUser.last_seen == 'onSession') {
-                    io.to(receiveUser.id).emit("exitBirdRoom", { info: { roomId: users_byId[userId].roomId, participantId: users_byId[userId].participantId } });
-                  }
-                });
                 birdRooms[index].participants.splice(p_index, 1);
+                io.to("appRoom").emit("exitBirdRoom", { info: { roomId: users_byId[userId].roomId, participantId: users_byId[userId].participantId } });
                 users_byId[userId].roomId = null;
                 users_byId[userId].participantId = null;
               }
