@@ -1,5 +1,5 @@
-import express from "express"
 import cors from 'cors'
+import express from "express"
 import * as http from 'http'
 import { Server } from 'socket.io'
 import AdminService from "./Service/AdminService.js"
@@ -99,12 +99,7 @@ io.on("connection", (socket) => {
           users_byId[info.user.id].roomId = info.roomId;
           users_byId[info.user.id].participantId = info.participantId;
         }
-        birdRooms[index].participants.forEach(el => {
-          let receiveUser = users_byId[el.user.id];
-          if (receiveUser && receiveUser.last_seen == 'onSession') {
-            io.to(receiveUser.id).emit("enterBirdRoom", { info });
-          }
-        })
+        io.to("appRoom").emit("enterBirdRoom", { info });
       }
     }
   });
@@ -118,12 +113,7 @@ io.on("connection", (socket) => {
           users_byId[info.user.id].roomId = null;
           users_byId[info.user.id].participantId = null;
         }
-        birdRooms[index].participants.forEach(el => {
-          let receiveUser = users_byId[el.user.id];
-          if (receiveUser && receiveUser.last_seen == 'onSession') {
-            io.to(receiveUser.id).emit("exitBirdRoom", { info });
-          }
-        });
+        io.to("appRoom").emit("exitBirdRoom", { info });
         birdRooms[index].participants.splice(p_index, 1);
       }
     }
