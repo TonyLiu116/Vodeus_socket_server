@@ -21,8 +21,35 @@ const birdRooms = [];
 
 io.on("connection", (socket) => {
 
+  const onDeleteRoom = (roomId) => {
+    let index = birdRooms.findIndex(el => (el.roomId == roomId));
+    if (index != -1) {
+      io.to("appRoom").emit("deleteBirdRoom", { info: { roomId } });
+      AdminService.deleteBirdRoom(roomId);
+      birdRooms.splice(index, 1);
+    }
+  }
+
+  const onExitRoom = (roomId, participantId, userId) => {
+    let index = birdRooms.findIndex(el => (el.roomId == roomId));
+    if (index != -1) {
+      if (birdRooms[index].hostUser.id == userId)
+        birdRooms[index]['delay'] = setTimeout(() => {
+          onDeleteRoom(roomId);
+        }, 30000);
+      let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == participantId));
+      if (p_index != -1) {
+        birdRooms[index].participants.splice(p_index, 1);
+        io.to("appRoom").emit("exitBirdRoom", { info: { roomId, participantId } });
+      }
+      if (users_byId[userId]) {
+        users_byId[userId].roomId = null;
+        users_byId[userId].participantId = null;
+      }
+    }
+  }
+
   socket.on("login", ({ uid, email, isNew }, callback) => {
-    console.log("login:", uid);
     const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
     if (selfIndex != -1 || (users_byId[uid] && users_byId[uid].last_seen == 'onSession')) {
       callback("Already login");
@@ -81,17 +108,12 @@ io.on("connection", (socket) => {
     io.to("appRoom").emit("new_room", { info });
   });
 
-  socket.on("deleteRoom", ({ info }) => {
-    let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
-    if (index != -1)
-      birdRooms.splice(index, 1);
-    io.to("appRoom").emit("deleteBirdRoom", { info });
-    AdminService.deleteBirdRoom(info.roomId);
-  });
-
   socket.on("enterRoom", ({ info }) => {
     let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
     if (index != -1) {
+      if (birdRooms[index]?.delay) {
+        clearTimeout(birdRooms[index].delay);
+      }
       let p_index = birdRooms[index].participants.findIndex(el => el.participantId == info.participantId);
       if (p_index == -1) {
         birdRooms[index].participants.push(info);
@@ -105,18 +127,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("exitRoom", ({ info }) => {
-    let index = birdRooms.findIndex(el => (el.roomId == info.roomId));
-    if (index != -1) {
-      let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == info.participantId));
-      if (p_index != -1) {
-        if (users_byId[info.user.id]) {
-          users_byId[info.user.id].roomId = null;
-          users_byId[info.user.id].participantId = null;
-        }
-        io.to("appRoom").emit("exitBirdRoom", { info });
-        birdRooms[index].participants.splice(p_index, 1);
-      }
-    }
+    onExitRoom(info.roomId, info.participantId, info.user.id);
   });
 
   socket.on("newVoice", ({ uid }) => {
@@ -152,23 +163,7 @@ io.on("connection", (socket) => {
         }
         AdminService.addSession(payload);
         if (users_byId[userId].roomId) {
-          let index = birdRooms.findIndex(el => (el.roomId == users_byId[userId].roomId));
-          if (index != -1) {
-            if (birdRooms[index].hostUser.id == userId) {
-              io.to("appRoom").emit("deleteBirdRoom", { info: { roomId: users_byId[userId].roomId } });
-              AdminService.deleteBirdRoom(users_byId[userId].roomId);
-              birdRooms.splice(index, 1);
-            }
-            else {
-              let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == users_byId[userId].participantId));
-              if (p_index != -1) {
-                birdRooms[index].participants.splice(p_index, 1);
-                io.to("appRoom").emit("exitBirdRoom", { info: { roomId: users_byId[userId].roomId, participantId: users_byId[userId].participantId } });
-                users_byId[userId].roomId = null;
-                users_byId[userId].participantId = null;
-              }
-            }
-          }
+          onExitRoom(users_byId[userId].roomId, users_byId[userId].participantId, userId);
         }
         socket.broadcast.emit("user_login", { user_id: userId, v: users_byId[userId].last_seen });
       }
