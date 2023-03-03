@@ -50,6 +50,7 @@ io.on("connection", (socket) => {
   }
 
   socket.on("login", ({ uid, email, isNew }, callback) => {
+    console.log("s");
     const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
     if (selfIndex != -1 || (users_byId[uid] && users_byId[uid].last_seen == 'onSession')) {
       callback("Already login");
