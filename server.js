@@ -91,8 +91,17 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getBirdRooms", (callback) => {
+    let tp = birdRooms.map(el=>{
+      return {
+        hostUser:el.hostUser,
+        roomId:el.roomId,
+        title:el.title,
+        categoryId:el.categoryId,
+        participants:el.participants
+      }
+    })
     try {
-      callback(birdRooms);
+      callback(tp);
     }
     catch (err) {
       console.log(err);
