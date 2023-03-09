@@ -28,7 +28,7 @@ const birdRooms = [
       "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
       "name": "Vodeus"
     }, "participants": [],
-    "roomId": "bdc9b0eb-6bdc-4133-8d27-958542078bd7",
+    "roomId": "6e57af09-4de0-4abf-9261-fd28581be971",
     "title": "Here, we talk about God."
   },
   {
@@ -41,7 +41,7 @@ const birdRooms = [
       "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
       "name": "Vodeus"
     }, "participants": [],
-    "roomId": "c5e41bc0-1482-465e-b97d-171daa80290d",
+    "roomId": "aa9b30e6-e829-4dc6-b9d5-6a334eb0d16a",
     "title": "Here, we talk about anything."
   }
 ];
