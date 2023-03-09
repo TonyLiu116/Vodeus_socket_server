@@ -69,7 +69,7 @@ io.on("connection", (socket) => {
         users_byId[userId].roomId = null;
         users_byId[userId].participantId = null;
       }
-      if ((birdRooms[index].hostUser.id == userId || birdRooms[index].participants.length == 0) && userId != '68263edd-fe69-4d13-b441-f0d6ae5f0c40')
+      if ((birdRooms[index].hostUser.id == userId || birdRooms[index].participants.length == 0) && birdRooms[index].hostUser.id != '68263edd-fe69-4d13-b441-f0d6ae5f0c40')
         birdRooms[index]['delay'] = setTimeout(() => {
           onDeleteRoom(roomId);
         }, 30000);
