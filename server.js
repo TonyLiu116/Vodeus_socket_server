@@ -60,10 +60,6 @@ io.on("connection", (socket) => {
   const onExitRoom = (roomId, participantId, userId) => {
     let index = birdRooms.findIndex(el => (el.roomId == roomId));
     if (index != -1) {
-      if (birdRooms[index].hostUser.id == userId && userId != '68263edd-fe69-4d13-b441-f0d6ae5f0c40')
-        birdRooms[index]['delay'] = setTimeout(() => {
-          onDeleteRoom(roomId);
-        }, 30000);
       let p_index = birdRooms[index].participants.findIndex(el => (el.participantId == participantId));
       if (p_index != -1) {
         birdRooms[index].participants.splice(p_index, 1);
@@ -73,6 +69,10 @@ io.on("connection", (socket) => {
         users_byId[userId].roomId = null;
         users_byId[userId].participantId = null;
       }
+      if ((birdRooms[index].hostUser.id == userId || birdRooms[index].participants.length == 0) && userId != '68263edd-fe69-4d13-b441-f0d6ae5f0c40')
+        birdRooms[index]['delay'] = setTimeout(() => {
+          onDeleteRoom(roomId);
+        }, 30000);
     }
   }
 
