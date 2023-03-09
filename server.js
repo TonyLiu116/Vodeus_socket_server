@@ -17,7 +17,34 @@ const io = new Server(server, {
 const vc_users = [];
 const dash_users = [];
 const users_byId = [];
-const birdRooms = [];
+const birdRooms = [
+  {
+    "categoryId": 0,
+    "hostUser": {
+      "avatar": {
+        "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/23a49eef-4719-4311-989d-323514f4c893-avatar"
+      },
+      "avatarNumber": 0,
+      "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
+      "name": "Vodeus"
+    }, "participants": [],
+    "roomId": "bdc9b0eb-6bdc-4133-8d27-958542078bd7",
+    "title": "Here, we talk about God."
+  },
+  {
+    "categoryId": 0,
+    "hostUser": {
+      "avatar": {
+        "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/23a49eef-4719-4311-989d-323514f4c893-avatar"
+      },
+      "avatarNumber": 0,
+      "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
+      "name": "Vodeus"
+    }, "participants": [],
+    "roomId": "c5e41bc0-1482-465e-b97d-171daa80290d",
+    "title": "Here, we talk about anything."
+  }
+];
 
 io.on("connection", (socket) => {
 
@@ -33,7 +60,7 @@ io.on("connection", (socket) => {
   const onExitRoom = (roomId, participantId, userId) => {
     let index = birdRooms.findIndex(el => (el.roomId == roomId));
     if (index != -1) {
-      if (birdRooms[index].hostUser.id == userId)
+      if (birdRooms[index].hostUser.id == userId && userId != '68263edd-fe69-4d13-b441-f0d6ae5f0c40')
         birdRooms[index]['delay'] = setTimeout(() => {
           onDeleteRoom(roomId);
         }, 30000);
@@ -91,13 +118,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getBirdRooms", (callback) => {
-    let tp = birdRooms.map(el=>{
+    let tp = birdRooms.map(el => {
       return {
-        hostUser:el.hostUser,
-        roomId:el.roomId,
-        title:el.title,
-        categoryId:el.categoryId,
-        participants:el.participants
+        hostUser: el.hostUser,
+        roomId: el.roomId,
+        title: el.title,
+        categoryId: el.categoryId,
+        participants: el.participants
       }
     })
     try {
