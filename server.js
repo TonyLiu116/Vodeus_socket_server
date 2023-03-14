@@ -19,7 +19,7 @@ const dash_users = [];
 const users_byId = [];
 const birdRooms = [
   {
-    "categoryId": 0,
+    "categoryId": 3,
     "hostUser": {
       "avatar": {
         "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/23a49eef-4719-4311-989d-323514f4c893-avatar"
