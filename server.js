@@ -30,7 +30,7 @@ const birdRooms = [
       "score": 80000
     }, "participants": [],
     "roomId": "6e57af09-4de0-4abf-9261-fd28581be971",
-    "title": "Prayer room"
+    "title": "Love for God"
   },
 ];
 
