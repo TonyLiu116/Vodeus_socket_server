@@ -155,6 +155,13 @@ io.on("connection", (socket) => {
     onExitRoom(info.roomId, info.participantId, info.user.id);
   });
 
+  socket.on("kickUser", ({ userId }) => {
+    let kickUser = users_byId[userId];
+    if (kickUser && kickUser.last_seen == 'onSession') {
+      io.to(kickUser.id).emit("kicked");
+    }
+  });
+
   socket.on("newVoice", ({ uid }) => {
     io.to("appRoom").emit("notice_Voice", { id: socket.id, user_id: uid });
   });
