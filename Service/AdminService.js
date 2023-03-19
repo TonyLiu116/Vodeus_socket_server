@@ -15,7 +15,7 @@ class AdminService {
     deleteBirdRoom(roomId) {
         fetch(`${BIRD_URL}/${roomId}`, {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json; charset=utf8', 'Api-Token': '583c7da377adf4b117fa59e20107374b50f5b557' }
+            headers: { 'Content-Type': 'application/json; charset=utf8', 'Api-Token': '5e8ddbdc78c1c6db3ae54a1b63fe7843c5141f8c' }
         }).then(res => {
         });
     }
