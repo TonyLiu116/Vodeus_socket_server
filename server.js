@@ -33,6 +33,7 @@ const birdRooms = [
     "title": "Love for God"
   },
 ];
+const chatRooms = [];
 
 io.on("connection", (socket) => {
 
@@ -42,6 +43,14 @@ io.on("connection", (socket) => {
       io.to("appRoom").emit("deleteBirdRoom", { info: { roomId } });
       AdminService.deleteBirdRoom(roomId);
       birdRooms.splice(index, 1);
+    }
+  }
+
+  const onDeleteChatRoom = (roomId) => {
+    let index = chatRooms.findIndex(el => (el.hostUser.id == roomId));
+    if (index != -1) {
+      io.to("appRoom").emit("deleteChatRoom", { roomId });
+      chatRooms.splice(index, 1);
     }
   }
 
@@ -64,8 +73,23 @@ io.on("connection", (socket) => {
     }
   }
 
+  const onExitChatRoom = (chatRoomId, socketId, userId) => {
+    let index = chatRooms.findIndex(el => (el.hostUser.id == chatRoomId));
+    if (index != -1) {
+      let p_index = chatRooms[index].users.findIndex(el => el == socketId);
+      if (p_index != -1) {
+        chatRooms[index].users.splice(p_index, 1);
+        io.to(chatRooms[index].users).emit("exitChatRoom", { info: { userId } });
+      }
+      if (users_byId[userId]) {
+        users_byId[userId].chatRoomId = null;
+      }
+      if (chatRooms[index].hostUser.id == userId || chatRooms[index].users.length == 0)
+        onDeleteChatRoom(chatRoomId);
+    }
+  }
+
   socket.on("login", ({ uid, email, isNew }, callback) => {
-    console.log("Login: ", uid);
     const selfIndex = vc_users.findIndex((e_user) => e_user.id === socket.id);
     if (selfIndex != -1 || (users_byId[uid] && users_byId[uid].last_seen == 'onSession')) {
       callback("Already login");
@@ -74,7 +98,7 @@ io.on("connection", (socket) => {
       vc_users.push({ id: socket.id, user_id: uid, user_email: email });
       if (isNew && !users_byId[uid])
         io.to("dashRoom").emit("subscribe_user", { email });
-      users_byId[uid] = { id: socket.id, user_id: uid, user_email: email, first_seen: new Date(), last_seen: "onSession", roomId: null, participantId: null };
+      users_byId[uid] = { id: socket.id, user_id: uid, user_email: email, first_seen: new Date(), last_seen: "onSession", roomId: null, participantId: null, chatRoomId: null };
       callback("Success");
       socket.broadcast.emit("user_login", { user_id: uid, v: 'onSession' });
       socket.join("appRoom");
@@ -103,6 +127,47 @@ io.on("connection", (socket) => {
     }
     catch (err) {
       console.log(err);
+    }
+  });
+
+  socket.on("getChatMessages", (room, callback) => {
+    let chatRoomIndex = chatRooms.findIndex(el => el.hostUser.id == room.hostUser.id);
+    let socketId = users_byId[room.userId].id;
+    if (chatRoomIndex != -1) {
+      let index = chatRooms[chatRoomIndex].users.findIndex(el => el == socketId);
+      if (index == -1){
+        io.to(chatRooms[chatRoomIndex].users).emit('enterChatRoom', { userId: room.userId })
+        chatRooms[chatRoomIndex].users.push(socketId);
+      }
+      callback(chatRooms[chatRoomIndex]);
+
+    }
+    else {
+      room.users.push(socketId);
+      chatRooms.push(room)
+      callback(room);
+    }
+    users_byId[room.userId].chatRoomId = room.hostUser.id;
+  });
+
+  socket.on("getChatRooms", (userId, callback) => {
+    let rooms = chatRooms.map(el => {
+      return el.hostUser
+    })
+    callback({ rooms });
+  });
+
+  socket.on("newChatMessage", ({ info }) => {
+    let chatRoomIndex = chatRooms.findIndex(el => el.hostUser.id == info.hostUserId);
+    if (chatRoomIndex != -1) {
+      let message = {
+        type: info.type,
+        value: info.value,
+        user: info.user,
+        createdAt: new Date()
+      };
+      chatRooms[chatRoomIndex].messages.push(message);
+      io.to(chatRooms[chatRoomIndex].users).emit('addChatMessage', { message })
     }
   });
 
@@ -155,6 +220,12 @@ io.on("connection", (socket) => {
     onExitRoom(info.roomId, info.participantId, info.user.id);
   });
 
+  socket.on("exitChatRoom", ({ info }) => {
+    if (users_byId[info.userId]) {
+      onExitChatRoom(info.roomId, users_byId[info.userId].id, info.userId);
+    }
+  });
+
   socket.on("kickUser", ({ userId }) => {
     let kickUser = users_byId[userId];
     if (kickUser && kickUser.last_seen == 'onSession') {
@@ -196,6 +267,9 @@ io.on("connection", (socket) => {
         AdminService.addSession(payload);
         if (users_byId[userId].roomId) {
           onExitRoom(users_byId[userId].roomId, users_byId[userId].participantId, userId);
+        }
+        if (users_byId[userId].chatRoomId) {
+          onExitChatRoom(users_byId[userId].chatRoomId, users_byId[userId].id, userId);
         }
         socket.broadcast.emit("user_login", { user_id: userId, v: users_byId[userId].last_seen });
       }
