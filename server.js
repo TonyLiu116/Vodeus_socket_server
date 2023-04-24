@@ -47,7 +47,21 @@ const birdRooms = [
     "title": "Love for God"
   },
 ];
-const chatRooms = [];
+const chatRooms = [
+  {
+    "hostUser": {
+      "avatar": {
+        "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/%F0%9F%99%8F%F0%9F%8F%BD.png"
+      },
+      "avatarNumber": 0,
+      "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
+      "name": "Hilal",
+    },
+    "users": [],
+    "messages": [],
+    "title": "Love for God"
+  },
+];
 
 io.on("connection", (socket) => {
 
@@ -87,18 +101,18 @@ io.on("connection", (socket) => {
     }
   }
 
-  const onExitChatRoom = (chatRoomId, socketId, userId) => {
+  const onExitChatRoom = (chatRoomId, userId) => {
     let index = chatRooms.findIndex(el => (el.hostUser.id == chatRoomId));
     if (index != -1) {
-      let p_index = chatRooms[index].users.findIndex(el => el == socketId);
+      let p_index = chatRooms[index].users.findIndex(el => el.id == userId);
       if (p_index != -1) {
         chatRooms[index].users.splice(p_index, 1);
-        io.to(chatRooms[index].users).emit("exitChatRoom", { info: { userId } });
+        io.to("appRoom").emit("exitChatRoom", { roomId: chatRoomId, userId });
       }
       if (users_byId[userId]) {
         users_byId[userId].chatRoomId = null;
       }
-      if (chatRooms[index].hostUser.id == userId || chatRooms[index].users.length == 0)
+      if (chatRooms[index].hostUser.id == userId)
         onDeleteChatRoom(chatRoomId);
     }
   }
@@ -146,29 +160,26 @@ io.on("connection", (socket) => {
 
   socket.on("getChatMessages", (room, callback) => {
     let chatRoomIndex = chatRooms.findIndex(el => el.hostUser.id == room.hostUser.id);
-    let socketId = users_byId[room.userId].id;
+    let socketId = users_byId[room.user.id].id;
     if (chatRoomIndex != -1) {
-      let index = chatRooms[chatRoomIndex].users.findIndex(el => el == socketId);
-      if (index == -1){
-        io.to(chatRooms[chatRoomIndex].users).emit('enterChatRoom', { userId: room.userId })
-        chatRooms[chatRoomIndex].users.push(socketId);
+      let index = chatRooms[chatRoomIndex].users.findIndex(el => el.id == room.user.id);
+      if (index == -1) {
+        io.to("appRoom").emit('enterChatRoom', { roomId: room.hostUser.id, userInfo: room.user })
+        chatRooms[chatRoomIndex].users.push(room.user);
       }
       callback(chatRooms[chatRoomIndex]);
-
     }
     else {
-      room.users.push(socketId);
+      room.users.push(room.user);
       chatRooms.push(room)
       callback(room);
+      io.to("appRoom").emit('createChatRoom', { info: room })
     }
-    users_byId[room.userId].chatRoomId = room.hostUser.id;
+    users_byId[room.user.id].chatRoomId = room.hostUser.id;
   });
 
-  socket.on("getChatRooms", (userId, callback) => {
-    let rooms = chatRooms.map(el => {
-      return el.hostUser
-    })
-    callback({ rooms });
+  socket.on("getChatRooms", (callback) => {
+    callback({ rooms: chatRooms });
   });
 
   socket.on("newChatMessage", ({ info }) => {
@@ -181,7 +192,7 @@ io.on("connection", (socket) => {
         createdAt: new Date()
       };
       chatRooms[chatRoomIndex].messages.push(message);
-      io.to(chatRooms[chatRoomIndex].users).emit('addChatMessage', { message })
+      io.to(chatRooms[chatRoomIndex].users.map(el => users_byId[el.id].id)).emit('addChatMessage', { message })
     }
   });
 
@@ -236,7 +247,7 @@ io.on("connection", (socket) => {
 
   socket.on("exitChatRoom", ({ info }) => {
     if (users_byId[info.userId]) {
-      onExitChatRoom(info.roomId, users_byId[info.userId].id, info.userId);
+      onExitChatRoom(info.roomId, info.userId);
     }
   });
 
