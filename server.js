@@ -18,20 +18,6 @@ const vc_users = [];
 const dash_users = [];
 const users_byId = [];
 const birdRooms = [
-  // {
-  //   "categoryId": 3,
-  //   "hostUser": {
-  //     "avatar": {
-  //       "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/%F0%9F%99%8F%F0%9F%8F%BD.png"
-  //     },
-  //     "avatarNumber": 0,
-  //     "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
-  //     "name": "Vodeus",
-  //     "score": 80000
-  //   }, "participants": [],
-  //   "roomId": "89442009-efba-4024-9f6a-5bf9fdfa0128",
-  //   "title": "Love for God"
-  // },
   {
     "categoryId": 3,
     "hostUser": {
@@ -40,12 +26,26 @@ const birdRooms = [
       },
       "avatarNumber": 0,
       "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
-      "name": "Hilal",
+      "name": "Vodeus",
       "score": 80000
     }, "participants": [],
-    "roomId": "9e7549cf-b43c-42e1-a9fa-2939ae67daf0",
+    "roomId": "89442009-efba-4024-9f6a-5bf9fdfa0128",
     "title": "Love for God"
   },
+  // {
+  //   "categoryId": 3,
+  //   "hostUser": {
+  //     "avatar": {
+  //       "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/%F0%9F%99%8F%F0%9F%8F%BD.png"
+  //     },
+  //     "avatarNumber": 0,
+  //     "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
+  //     "name": "Hilal",
+  //     "score": 80000
+  //   }, "participants": [],
+  //   "roomId": "9e7549cf-b43c-42e1-a9fa-2939ae67daf0",
+  //   "title": "Love for God"
+  // },
 ];
 const chatRooms = [
   {
@@ -55,12 +55,25 @@ const chatRooms = [
       },
       "avatarNumber": 0,
       "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
-      "name": "Hilal",
+      "name": "Vodeus",
     },
     "users": [],
     "messages": [],
     "title": "Love for God"
   },
+  // {
+  //   "hostUser": {
+  //     "avatar": {
+  //       "id": "5f49d05d-980b-469e-a247-2a0ad632ce3c", "key": "23a49eef-4719-4311-989d-323514f4c893-avatar", "type": "image", "url": "https://vodienstorage.s3.sa-east-1.amazonaws.com/%F0%9F%99%8F%F0%9F%8F%BD.png"
+  //     },
+  //     "avatarNumber": 0,
+  //     "id": "68263edd-fe69-4d13-b441-f0d6ae5f0c40",
+  //     "name": "Hilal",
+  //   },
+  //   "users": [],
+  //   "messages": [],
+  //   "title": "Love for God"
+  // },
 ];
 
 io.on("connection", (socket) => {
