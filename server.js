@@ -202,6 +202,7 @@ io.on("connection", (socket) => {
         type: info.type,
         value: info.value,
         user: info.user,
+        parentId: info?.parentId,
         createdAt: new Date()
       };
       chatRooms[chatRoomIndex].messages.push(message);
